@@ -1,0 +1,162 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+public class LocalPlayerData : MonoBehaviour
+{
+	//===============================================================
+	public static LocalPlayerData Instance;
+	//===============================================================
+	[HideInInspector] public static string WalletAddress;
+	[HideInInspector] public static string GamerTag;
+
+	[HideInInspector] public static int LastScore;
+	[HideInInspector] public static int HighScore;
+
+	[HideInInspector] public static int TimesPlayed;
+	[HideInInspector] public static string LastPlayedDateString;
+	[HideInInspector] public static string LastPlayedTxidString;
+
+	[HideInInspector] public List<KeyValuePair<string, int>> Local_Top10Scoreboard;
+	[HideInInspector] public List<KeyValuePair<string, int>> Local_OrderedTop10Scoreboard;
+
+	private float _fakeResponseTime = 0.5f;
+	public static bool ListUpdated = false;
+
+	//===============================================================
+	private void Awake()
+	{
+		if (Instance != null && Instance != this)
+		{
+			Destroy(gameObject);
+			return;
+		}
+		else if (Instance == null)
+		{
+			Instance = this;
+			DontDestroyOnLoad(gameObject);
+		}
+	}
+
+	//===============================================================
+	//		overwrite LocalPlayerData
+	//===============================================================
+	public static void SaveWalletAddress(string address)
+	{
+		WalletAddress = address;
+	}
+	public static void SaveGamertag(string gamertag)
+	{
+		GamerTag = gamertag;
+	}
+	public static void RegisterTimesPlayed(string txid)
+	{
+		TimesPlayed++;
+		LastPlayedDateString = DateTime.Now.ToString();
+		LastPlayedTxidString = txid;
+	}
+	public void SaveLastCheckHighScore(int score)
+	{
+		LastScore = score;
+		if (LastScore > HighScore)
+		{
+			HighScore = LastScore;
+			StartCoroutine(MDB_PlayerData.Instance.MDB_PUSH_LastScore());
+			StartCoroutine(MDB_PlayerData.Instance.MDB_PUSH_HighScore());
+		}
+		else
+		{
+			StartCoroutine(MDB_PlayerData.Instance.MDB_PUSH_LastScore());
+		}
+	}
+	//===============================================================
+	public void OverwriteLocalDataWithMongoDB()
+	{
+		LastScore = MDB_PlayerData.MDB_GET_LastScore();
+		HighScore = MDB_PlayerData.MDB_GET_HighScore();
+		TimesPlayed = MDB_PlayerData.MDB_GET_TimesPlayed();
+		LastPlayedDateString = MDB_PlayerData.MDB_GET_LastPlayedDate();
+		LastPlayedTxidString = MDB_PlayerData.MDB_GET_LastPlayedTxid();
+	}
+
+
+	//===============================================================
+	public static void DebugPlayerData()
+	{
+		Debug.Log($"wallet: {WalletAddress}");
+		Debug.Log($"user: {GamerTag}");
+		Debug.Log($"last score: {LastScore}");
+		Debug.Log($"high score: {HighScore}");
+		Debug.Log($"times played: {TimesPlayed}");
+		Debug.Log($"LastPlayed Date: {LastPlayedDateString}");
+		Debug.Log($"LastPlayed Txid: {LastPlayedTxidString}");
+	}
+
+	//===============================================================
+	//	SCOREBOARD HANDLING
+	//===============================================================
+	public void GetAndCheckTop10()
+	{
+		StartCoroutine(GetTop10_CheckIfNewTop10());
+	}
+	// this will be called when the button continue is clicked
+	// yield return StartCoroutine(LocalPlayerData.Instance.GetTop10_CheckIfNewTop10_co());
+	public IEnumerator GetTop10_CheckIfNewTop10()
+	{
+		// get the top10 list
+		Local_Top10Scoreboard = MDB_Scoreboard.Instance.MDB_Top10Scoreboard;
+
+		yield return new WaitForSeconds(_fakeResponseTime);
+
+		// this is an ordered list of the mongoDB top10 dictionary
+		Local_OrderedTop10Scoreboard = CreateOrderedScore_ListFromList(Local_Top10Scoreboard);
+
+		// this is a copied list... it checks if there's a new highscore or not
+		Local_Top10Scoreboard = UpdateOrderedScore_List(Local_OrderedTop10Scoreboard, GamerTag, MainGameStatus.BestScore);
+
+		if (ListUpdated)
+		{
+			// push the new LIST to mongoDB -> _listUpdated bool will be changed by Scenes_Controller OnEnable
+			StartCoroutine(MDB_Scoreboard.Instance.MDB_PUSH_newTop10scoreboard_list_co());
+		}
+	}
+
+	//===============================================================================================================
+	//	UTILITY for the scoreboard logic
+	//===============================================================================================================
+	private List<KeyValuePair<string, int>> CreateOrderedScore_ListFromList(List<KeyValuePair<string, int>> list)
+	{
+		return list
+			.OrderByDescending(x => x.Value)
+			.ToList();
+	}
+	//===============================================================================================================
+	// B. CREATE A NEW LIST WITH A NEW VALUE ATTACHED (IN CASE MY CURRENT SCORE FITS INTO THE TOP 10), takes the previous ordered list
+	//	_toBeSHOWN_OrderedTop10_List
+	private List<KeyValuePair<string, int>> UpdateOrderedScore_List(List<KeyValuePair<string, int>> orderedList, string key, int newScore)
+	{
+		// Check if the new score qualifies for the top 10 (equal to or greater than the 10th place)
+		if (orderedList.Count < 10 || newScore >= orderedList[orderedList.Count - 1].Value)
+		{
+			// Flag indicating the list will be updated
+			ListUpdated = true;
+
+			// If the list already has 10 entries, remove the 10th place (the lowest score)
+			if (orderedList.Count == 10)
+			{
+				orderedList.RemoveAt(9);
+			}
+
+			// Add the new score to the list with the player's key
+			orderedList.Add(new KeyValuePair<string, int>(key, newScore));
+
+			// Reorder the list in descending order based on the scores
+			orderedList = orderedList.OrderByDescending(x => x.Value).ToList();
+		}
+
+		// Return the updated or unchanged ordered list
+		return orderedList;
+	}
+}
