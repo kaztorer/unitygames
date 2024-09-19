@@ -1,0 +1,91 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MDB_Scoreboard : MonoBehaviour
+{
+	//===============================================================
+	public static MDB_Scoreboard Instance;
+
+	private static System.Random random = new System.Random();
+	//===============================================================
+	[HideInInspector] public List<KeyValuePair<string, int>> MDB_Top10Scoreboard;
+
+	//===============================================================
+	private float _fakeResponseTime = 0.5f;
+
+	//===============================================================
+	private void Awake()
+	{
+		if (Instance != null && Instance != this)
+		{
+			Destroy(gameObject);
+			return;
+		}
+		else if (Instance == null)
+		{
+			Instance = this;
+			DontDestroyOnLoad(gameObject);
+		}
+
+		SetupRandomTop10_list();
+	}
+
+	//===============================================================================================================
+	public List<KeyValuePair<string, int>> MDB_GET_Scoreboard()
+	{
+		return MDB_Top10Scoreboard;
+	}
+
+	//===============================================================================================================
+	// PUSH NEW DICTIONARY FROM MONGO
+	// it overwrites the current (local fake) dictionary using the InGame data
+	public IEnumerator MDB_PUSH_newTop10scoreboard_list_co()
+	{
+		yield return new WaitForSeconds(_fakeResponseTime);
+
+		MDB_Top10Scoreboard = LocalPlayerData.Instance.Local_Top10Scoreboard;
+	}
+
+	//===============================================================================================================
+	// setup a fake top10 default list
+	private void SetupRandomTop10_list()
+	{
+		MDB_Top10Scoreboard = PopulateList();
+	}
+
+	//===============================================================================================================
+	// generates a list of 10 items with a random string and value
+	public static List<KeyValuePair<string, int>> PopulateList()
+	{
+		List<KeyValuePair<string, int>> list = new List<KeyValuePair<string, int>>();
+
+		for (int i = 0; i < 10; i++)
+		{
+			string key = GenerateRandomKey();
+			int value = random.Next(0, 21); // Upper bound is exclusive
+
+			// Add a new KeyValuePair to the list
+			list.Add(new KeyValuePair<string, int>(key, value));
+		}
+
+		return list;
+	}
+
+	//===============================================================================================================
+	// generates a string of 4 random letters
+	private static string GenerateRandomKey()
+	{
+		const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		int number = 12;
+		char[] key = new char[number];
+
+		for (int i = 0; i < number; i++)
+		{
+			key[i] = chars[random.Next(chars.Length)];
+		}
+
+		return new string(key);
+	}
+	//===============================================================================================================
+}
