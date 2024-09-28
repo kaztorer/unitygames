@@ -1,3 +1,6 @@
+// this is a fake mongoDB
+// it contains fake functions for WRITE (PUSH) data into mongoDB and also GET data from mongoDB
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,6 +12,7 @@ public class MDB_PlayerData : MonoBehaviour
 	public static MDB_PlayerData Instance;
 	//===============================================================
 
+	// same data structure as in local player data (top10 scoreboard is handled in other script)
 	[HideInInspector] public static string MDB_WalletAddress;
 	[HideInInspector] public static string MDB_GamerTag;
 
@@ -37,6 +41,7 @@ public class MDB_PlayerData : MonoBehaviour
 		}
 	}
 
+	// si no existe el usuario con la WalletAddress que paga para jugar, es porque es necesario crear un nuevo usuario en mongoDB
 	public void SetupDefaultNewDB()
 	{
 		MDB_WalletAddress = "aSolWalletAddress";
@@ -50,6 +55,7 @@ public class MDB_PlayerData : MonoBehaviour
 		MDB_LastPlayedTxidString = "txid";
 	}
 
+	// base de datos falsa para prueba
 	private void SetupFakeDB()
 	{
 		MDB_WalletAddress = "aSolWalletAddress";
@@ -63,13 +69,18 @@ public class MDB_PlayerData : MonoBehaviour
 		MDB_LastPlayedTxidString = "txid";
 	}
 
+
+
 	//=============================================================== PUSH / SETTERS
+
+	// push new username (GamerTag) se sobreescribe cada vez que se abre el link del juego
 	public IEnumerator MDB_PUSH_username()
 	{
 		yield return new WaitForSeconds(_fakeResponseTime);
 		MDB_GamerTag = LocalPlayerData.GamerTag;
 	}
 
+	// cada vez que se paga se registra
 	public IEnumerator MDB_PUSH_registerLastPlayed()
 	{
 		yield return new WaitForSeconds(_fakeResponseTime);
@@ -78,18 +89,22 @@ public class MDB_PlayerData : MonoBehaviour
 		MDB_LastPlayedTxidString = LocalPlayerData.LastPlayedTxidString;
 	}
 
+	// lo utiliza el LocalPlayerData cada que el usuario pierde 1 vida
 	public IEnumerator MDB_PUSH_LastScore()
 	{
 		yield return new WaitForSeconds(_fakeResponseTime);
 		MDB_LastScore = LocalPlayerData.LastScore;
 	}
 
+	// lo utiliza el LocalPlayerData cada que el usuario pierde 1 vida (solamente si hay un nuevo highscore)
 	public IEnumerator MDB_PUSH_HighScore()
 	{
 		yield return new WaitForSeconds(_fakeResponseTime);
 		MDB_HighScore = LocalPlayerData.HighScore;
 	}
 
+
+	// estas funciones son falsas! simplemente regresan el valor que esta escrito en este mismo script de GamerTag, LastScore... etc ....
 	//=============================================================== GET
 	public static string MDB_GET_Gamertag()
 	{
