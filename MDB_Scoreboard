@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+// fake mongoDB scoreboard
+// this script handles the Top10 Scoreboard data 
+
 public class MDB_Scoreboard : MonoBehaviour
 {
 	//===============================================================
@@ -9,6 +12,8 @@ public class MDB_Scoreboard : MonoBehaviour
 
 	private static System.Random random = new System.Random();
 	//===============================================================
+
+	// este es la lista de top10... son pares de String con Highscore (int)
 	[HideInInspector] public List<KeyValuePair<string, int>> MDB_Top10Scoreboard;
 
 	//===============================================================
@@ -32,14 +37,15 @@ public class MDB_Scoreboard : MonoBehaviour
 	}
 
 	//===============================================================================================================
+	// simplemente regresa la lista que esta guardada en este mismo scrip (top10 fake)
 	public List<KeyValuePair<string, int>> MDB_GET_Scoreboard()
 	{
 		return MDB_Top10Scoreboard;
 	}
 
 	//===============================================================================================================
-	// PUSH NEW DICTIONARY FROM MONGO
-	// it overwrites the current (local fake) dictionary using the InGame data
+	// PUSH NEW top10 LIST TO MONGODB
+	// sobreescribe la lista de este mismo script... deberia sobreescribir la lista de top10 de mongo
 	public IEnumerator MDB_PUSH_newTop10scoreboard_list_co()
 	{
 		yield return new WaitForSeconds(_fakeResponseTime);
@@ -49,6 +55,7 @@ public class MDB_Scoreboard : MonoBehaviour
 
 	//===============================================================================================================
 	// setup a fake top10 default list
+	// es una funcion para hacer un top10 falso
 	private void SetupRandomTop10_list()
 	{
 		MDB_Top10Scoreboard = PopulateList();
@@ -56,6 +63,7 @@ public class MDB_Scoreboard : MonoBehaviour
 
 	//===============================================================================================================
 	// generates a list of 10 items with a random string and value
+	// it's random GamerTag string and random HighScore value for each one
 	public static List<KeyValuePair<string, int>> PopulateList()
 	{
 		List<KeyValuePair<string, int>> list = new List<KeyValuePair<string, int>>();
